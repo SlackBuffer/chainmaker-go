@@ -171,6 +171,7 @@ func (v *BlockVerifierImpl) VerifyBlock(block *commonpb.Block, mode protocol.Ver
 					hex.EncodeToString(lastBlock.Header.BlockHash),
 					lastBlock.Header.BlockHeight,
 				)
+				// 将已经写入区块的交易剔除，其它交易重新放入交易池
 				v.cutBlocks(cutBlocks, lastBlock)
 			}
 
@@ -185,6 +186,7 @@ func (v *BlockVerifierImpl) VerifyBlock(block *commonpb.Block, mode protocol.Ver
 	}
 
 	startPoolTick := utils.CurrentTimeMillisSeconds()
+	// 拿到 block 副本
 	newBlock, err := common.RecoverBlock(block, mode, v.chainConf, v.txPool, v.log)
 	if err != nil {
 		return err
@@ -434,9 +436,12 @@ func parseVerifyResult(block *commonpb.Block, isValid bool,
 func (v *BlockVerifierImpl) cutBlocks(blocksToCut []*commonpb.Block, blockToKeep *commonpb.Block) {
 	cutTxs := make([]*commonpb.Transaction, 0)
 	txMap := make(map[string]interface{})
+
+	// 已经进入区块的交易
 	for _, tx := range blockToKeep.Txs {
 		txMap[tx.Payload.TxId] = struct{}{}
 	}
+	// blocksToCut 里的交易是待重新切块的
 	for _, blockToCut := range blocksToCut {
 		v.log.Infof("cut block block hash: %s, height: %v", blockToCut.Header.BlockHash, blockToCut.Header.BlockHeight)
 		for _, txToCut := range blockToCut.Txs {
@@ -448,6 +453,7 @@ func (v *BlockVerifierImpl) cutBlocks(blocksToCut []*commonpb.Block, blockToKeep
 			cutTxs = append(cutTxs, txToCut)
 		}
 	}
+	// 还需要重试的交易
 	if len(cutTxs) > 0 {
 		v.txPool.RetryAndRemoveTxs(cutTxs, nil)
 	}

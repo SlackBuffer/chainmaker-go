@@ -214,6 +214,7 @@ func (pc *ProposalCache) ResetProposedAt(height uint64) {
 }
 
 // Remove proposed block in height except the specific block.
+// 返回的是删除掉的区块
 func (pc *ProposalCache) KeepProposedBlock(hash []byte, height uint64) []*commonpb.Block {
 	blocks := make([]*commonpb.Block, 0)
 	pc.rwMu.Lock()

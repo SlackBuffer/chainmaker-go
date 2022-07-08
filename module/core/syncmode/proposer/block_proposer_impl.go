@@ -419,6 +419,8 @@ func (bp *BlockProposerImpl) OnReceiveProposeStatusChange(proposeStatus bool) {
 		return
 	}
 	height, _ := bp.ledgerCache.CurrentHeight()
+
+	// 节点的共识状态发生变化，先 reset 再说（为何置为 false）
 	bp.proposalCache.ResetProposedAt(height + 1) // proposer status changed, reset this round proposed status
 	bp.setIsSelfProposer(proposeStatus)
 	if !bp.isSelfProposer() {
